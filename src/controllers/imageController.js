@@ -1,6 +1,8 @@
 // const initModels = require("../models/init-models");
 // const sequelize = require('../models/index');
+
 const { PrismaClient } = require("@prisma/client");
+const { descriptToken } = require("../config/jwt");
 
 const prisma = new PrismaClient();
 
@@ -69,7 +71,11 @@ const getStatusSave = async (req, res) => {
 
 const createImage = async (req, res) => {
   try {
-    const { name, path, descr, user_id } = req.body;
+    let { token } = req.headers;
+    let decodeToken = descriptToken(token);
+    let { user_id } = decodeToken.data;
+
+    const { name, path, descr } = req.body;
 
     // INSERT INTO VALUES
     let newData = {
@@ -89,9 +95,45 @@ const createImage = async (req, res) => {
   }
 };
 
-const updateFood = async (req, res) => {
-  //UPDATE SET WHERE
-  // Food.update(model, { where: { food_id } });
+const commentImage = async (req, res) => {
+  try {
+    const { imageId, userId } = req.params;
+    const { date, content } = req.body;
+
+    const newData = { image_id: +imageId, user_id: +userId , date, content };
+    const data = await prisma.comments.create({data: newData});
+
+    res.status(200).send(data);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+};
+
+const deleteImage = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deleteComments = prisma.comments.deleteMany({
+      where: {
+        image_id: +id
+      }
+    });
+    const deleteStorage = prisma.storage.deleteMany({
+      where: {
+        image_id: +id
+      }
+    });
+    const deleteImage = prisma.images.deleteMany({
+      where: {
+        image_id: +id
+      }
+    });
+
+    const transaction = await prisma.$transaction([deleteComments, deleteStorage, deleteImage])
+    res.status(200).send(transaction);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
 };
 
 const removeImage = async (req, res) => {
@@ -124,7 +166,8 @@ module.exports = {
   getImageComments,
   getStatusSave,
   createImage,
-  updateFood,
+  commentImage,
   removeImage,
   searchImages,
+  deleteImage
 };

@@ -3,7 +3,7 @@ const userRouter = express.Router();
 const multer = require("multer");
 const fs = require('fs');
 const compress_images = require("compress-images");
-const { getUser, getImagesCreate, getImagesSave, createUser, loginUser, signupUser, changeInfo } = require("../controllers/userController");
+const { getUser, getImagesCreate, getImagesSave, loginUser, signupUser, changeInfo } = require("../controllers/userController");
 const { authentication } = require("../controllers/authController");
 
 // upload start
@@ -22,7 +22,7 @@ userRouter.get("/get-user", authentication, getUser);
 userRouter.get("/get-images-create/:id", authentication, getImagesCreate);
 userRouter.get("/get-images-save/:id", authentication, getImagesSave);
 
-userRouter.post("/create-user", authentication, createUser);
+// userRouter.post("/create-user", authentication, createUser);
 userRouter.post('/login', loginUser);
 userRouter.post('/signup', signupUser);
 

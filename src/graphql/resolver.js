@@ -22,11 +22,7 @@ const resolverGrap = {
     let data = await prisma.images.findMany();
 
     return data;
-  },
-
-  createUser: () => {
-    return 123;
-  },
+  }
 };
 
 module.exports = resolverGrap;

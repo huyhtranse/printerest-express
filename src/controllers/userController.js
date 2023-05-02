@@ -4,7 +4,7 @@ const { PrismaClient } = require('@prisma/client')
 const initModels = require("../models/init-models");
 const sequelize = require("../models/index");
 const { createToken,descriptToken } = require("../config/jwt");
-const { successCode } = require("../config/response");
+const { successCode, failCode } = require("../config/response");
 
 const model = initModels(sequelize);
 const prisma = new PrismaClient();
@@ -73,10 +73,6 @@ const getImagesSave = async (req, res) => {
   }
 };
 
-const createUser = (req, res) => {
-  res.send("create user");
-};
-
 const loginUser = async (req, res) => {
   try {
     let { email, password } = req.body;
@@ -93,7 +89,7 @@ const loginUser = async (req, res) => {
       if (checkPass) {
         let token = createToken(checkUser);
 
-        successCode(res, token, "login....");
+        successCode(res, token, "Your signup was a success");
       } else {
         res.status(500).send("password incorrect");
       }
@@ -107,14 +103,14 @@ const loginUser = async (req, res) => {
 const signupUser = async (req, res) => {
   try {
     let { full_name, email, password } = req.body;
-    let data = { full_name, email, password: bcrypt.hashSync(password, 10) };
+    let newData = { full_name, email, password: bcrypt.hashSync(password, 10) };
 
-    await model.users.create(data);
+    const data = await model.users.create(newData);
 
-    // successCode(res, data, 'Signup Success')
-
-    res.send("signup");
-  } catch (err) {}
+    successCode(res, data, "Your signup was a success");
+  } catch (err) {
+    failCode(res, "Internal Server Error");
+  }
 };
 
 // PUT
@@ -151,7 +147,6 @@ module.exports = {
   getUser,
   getImagesCreate,
   getImagesSave,
-  createUser,
   loginUser,
   signupUser,
   changeInfo
