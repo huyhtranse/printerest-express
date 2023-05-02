@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Client</title>
+</head>
+
+<body>
+    <h1>Hello Client</h1>
+
+    <h2 id="notify"></h2>
+
+    <!-- Leaving a comment -->
+    <button id="submit">Submit</button>
+
+    <!-- Posting an iamge -->
+    <button id="post">Post</button>
+
+    <script src="https://cdn.socket.io/4.6.0/socket.io.min.js"
+        integrity="sha384-c79GN5VsunZvi+Q/WObgk2in0CbZsHnjEqvFxC5DxHn9lTfNce2WW6h2pH6u/kF+"
+        crossorigin="anonymous"></script>
+    <script>
+        const socket = io('ws://localhost:8080');
+
+        let user_id = 2;
+        // join room start
+        if (user_id) {
+            // join room
+            socket.emit('join-room', user_id)
+        }
+        // join room end
+
+        document.getElementById('post').onclick = () => {
+            socket.emit('image-create', 'an image posted')
+        }
+
+        // Submiting a comment
+        document.getElementById('submit').onclick = () => {
+            socket.emit('submit-comment', 'someone commented on your post')
+        }
+
+        socket.on('notify-image-create',(data)=>{
+            document.getElementById('notify').textContent = data
+        });
+
+        socket.on('notify-post-comment',(data)=>{
+            document.getElementById('notify').textContent = data
+        })
+    </script>
+</body>
+
+</html>
