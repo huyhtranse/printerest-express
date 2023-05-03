@@ -16,10 +16,10 @@ const errorCode = (res, data, message) => {
     })
 }
 // 500
-const failCode = (res, message) => {
+const failCode = (res) => {
     res.status(500).json({
         statusCode: "500",
-        message
+        message: "Internal Server Error"
     })
 }
 module.exports = { successCode, errorCode, failCode }

@@ -1,10 +1,26 @@
 // const initModels = require("../models/init-models");
 // const sequelize = require('../models/index');
-
+const multer = require('multer');
+const fs = require('fs');
 const { PrismaClient } = require("@prisma/client");
+const compress_images = require("compress-images");
+
 const { descriptToken } = require("../config/jwt");
+const {successCode ,failCode}=require('../config/response')
 
 const prisma = new PrismaClient();
+
+// upload start
+// const storage = multer.diskStorage({
+//   destination: (req, file, callback) => callback(null, process.cwd() + "/public/imgs_compress"),
+
+//   filename: (req, file, callback) => {
+//     let newName = Date.now() + "_" + file.originalname;
+//     callback(null, newName);
+//   },
+// });
+// const upload = multer({ storage });
+// upload end
 
 // GET
 const getImages = async (req, res) => {
@@ -55,11 +71,16 @@ const getImageComments = async (req, res) => {
 
 const getStatusSave = async (req, res) => {
   try {
-    let { imageId, userId } = req.params;
+    let { token } = req.headers;
+    let { id } = req.params;
+
+    let decodeToken = descriptToken(token);
+    let { user_id } = decodeToken.data;
+
     let data = await prisma.storage.findMany({
       where: {
-        image_id: +imageId,
-        user_id: +userId
+        image_id: +id,
+        user_id: +user_id
       }
     });
 
@@ -69,43 +90,80 @@ const getStatusSave = async (req, res) => {
   }
 };
 
+const uploadImage = async (req, res) => {
+  // compress
+  const data = await compress_images(
+    `${process.cwd()}/public/imgs_compress/${req.file.filename}`,
+    "./public/imgs/",
+    { compress_force: false, statistic: true, autoupdate: true },
+    false,
+    { jpg: { engine: "mozjpeg", command: ["-quality", "60"] } },
+    { png: { engine: "pngquant", command: ["--quality=20-50", "-o"] } },
+    { svg: { engine: "svgo", command: "--multipass" } },
+    {
+      gif: { engine: "gifsicle", command: ["--colors", "64", "--use-col=web"] },
+    },
+    function (err, completed, statistic) {
+      if (completed) {
+        fs.readFile(statistic.path_out_new, (err, data) => {
+          // let fileBase = `data:${file.mimetype};base64,${Buffer.from(
+          //   data
+          // ).toString("base64")}`;
+
+          // fs.unlink(
+          //   process.cwd() + "/public/imgs/" + req.file.filename,
+          //   (err) => {}
+          // );
+          fs.unlink(
+            process.cwd() + "/public/imgs_compress/" + req.file.filename,
+            (err) => {}
+          );
+
+          successCode(res, statistic, req.file.filename)
+        });
+      }
+    }
+  );
+};
+
 const createImage = async (req, res) => {
   try {
     let { token } = req.headers;
     let decodeToken = descriptToken(token);
     let { user_id } = decodeToken.data;
 
-    const { name, path, descr } = req.body;
-
+    const { name, descr, path } = req.body;
     // INSERT INTO VALUES
-    let newData = {
+    const newData = {
       name,
       path,
       descr,
       user_id,
     };
 
-    let data = await prisma.images.create({ data: newData });
+    const data = await prisma.images.create({ data: newData });
 
-    // console.log(data);
-
-    res.status(200).send(data);
+    successCode(res, data, "The Image Uploaded");
   } catch (err) {
-    res.status(500).send(err);
+    failCode(res);
   }
 };
 
 const commentImage = async (req, res) => {
   try {
-    const { imageId, userId } = req.params;
-    const { date, content } = req.body;
+    const { token } = req.headers;
+    const { id } = req.params;
+    const decodeToken = descriptToken(token);
+    const { user_id } = decodeToken.data;
 
-    const newData = { image_id: +imageId, user_id: +userId , date, content };
-    const data = await prisma.comments.create({data: newData});
+    const {date, content} = req.body;
 
-    res.status(200).send(data);
+    const newData = { image_id: +id, user_id, date, content };
+    const data = await prisma.comments.create({ data: newData });
+
+    successCode(res, data, "The comment posted");
   } catch (error) {
-    res.status(500).send(error.message);
+    failCode(res);
   }
 };
 
@@ -130,9 +188,9 @@ const deleteImage = async (req, res) => {
     });
 
     const transaction = await prisma.$transaction([deleteComments, deleteStorage, deleteImage])
-    res.status(200).send(transaction);
+    successCode(res, transaction, "The image deleted.");
   } catch (error) {
-    res.status(500).send(error.message);
+    failCode(res);
   }
 };
 
@@ -165,6 +223,7 @@ module.exports = {
   getImageDetails,
   getImageComments,
   getStatusSave,
+  uploadImage,
   createImage,
   commentImage,
   removeImage,

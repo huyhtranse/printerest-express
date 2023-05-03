@@ -109,7 +109,7 @@ const signupUser = async (req, res) => {
 
     successCode(res, data, "Your signup was a success");
   } catch (err) {
-    failCode(res, "Internal Server Error");
+    failCode(res);
   }
 };
 
@@ -121,24 +121,23 @@ const changeInfo = async(req, res) => {
     let { user_id } = decodeToken.data;
 
     let { email, password, full_name, age, avatar } = req.body;
-    let data = {
+    let newData = {
       email,
       password: bcrypt.hashSync(password, 10),
       full_name,
       age,
       avatar
     };
-    await prisma.users.update({
+    const data = await prisma.users.update({
       where: {
         user_id,
       },
-      data,
+      data: newData,
     });
 
-    res.send("changed info");
+    successCode(res, data, "Your info was updated");
   } catch (error) {
-    res.status(401).send("loi BE");
-    
+    failCode(res)
   }
 }
 
